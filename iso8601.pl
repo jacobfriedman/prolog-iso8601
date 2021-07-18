@@ -27,69 +27,134 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 */
 
 %   INCOMPLETE.
 :-  module(iso8601, [date/3, time/2, instant/2]).
+:-  dynamic time_axis/3.
 %                       ...
 
-/** <module> ISO 8601 date library
+/* <module> ISO8601-1:2019 date library
 
-ISO8601-1:2019 & ISO8601-2:2019
 Date and time Representations for information interchange
-
 Gregorian dates and times based on the 24-hour clock
 based on composite character strings + time shifts, with UTC default.
 
 @author Jacob Friedman
 @license GPL
-
 */
 
-initialization(time_axis).
 
-% ----- ISO8601-1:2019 Part 1: Basic Rules -----
+% ------- ISO8601-1:2019 Part 1: Basic Rules -------
+% 3.1 Terms and Definitions --> 3.1.1 Basic Concepts
+% --------------------------------------------------
+% ===========
+% 3.1.1.1 *date*
+% Format can be one of 'calendar', 'ordinal', or 'week'.
+% !date(+Time:time, -Format:string, Time_Scale:time_scale) is det
+% !date(-Time:time, +Format:string, Time_Scale:time_scale) is det
 
-% 3.1 Terms and Definitions -> 3.1.1 Basic Concepts
+date(Time, Format, time_scale('calendar', _Origin, Instants, _Time_Axis)) :- 
+%   TODO: denominate _Time_ and _Instants_ to a single format. 
+    member(Time, Instants).
 
-% ------------
-% 3.1.1.1 date
-% !date(+Time:time, -Date:date, ++Options) is nondet
-% !date(-Time:time, +Date:date, ++Options) is nondet
 
-date(Time, Date, Format) :-  true. % time_scale(calendar)
-
-% 3.1.1.2 time
-% ------------
-% time(+Instant:, +Time_Scale) is det
+% ===========
+% 3.1.1.2 *time*
 % "mark attributed to an _instant_ or _time interval_ on a specified _time scale_"
-time(Instant_or_Time_Interval, Time_Scale) :- true. % Instant must be on a time scale
-
-% Note 1: _time_ should be used only if meaning is visible from context.
-% Note 2: If _time scale_ consists of successive _time intervals_,
+%   Note 1: _time_ should be used *only if* its meaning is visible from the context.
+%   Note 2: If _time scale_ consists of successive _time intervals_,
 %         (e.g. _clock_ or _calendar_), distinct _instants_ may be expressed by the same _time_.
-% Note 3: This definition corresponds with the definition of term "date" in IEC 60050-113:
+%   Note 3: This definition corresponds with the definition of term "date" in IEC 60050-113:
 %    IEC 60050-113-01-12 date: mark attributed to an instant by means of a specified time scale
 %       1: On a time scale consisting of successive steps, two distinct instants 
 %          may be expressed by the same date (see Note 1 of the term “time scale” in 113-01-11).
 %       2: With respect to the specified time scale, a date may also be considered as the duration between the origin of the time scale and the considered instant.
 %       3: In common language, the term “date” is mainly used when the time scale is a calendar as a sequence of days."
+%
+%! time(+Instant:, +Time_Scale) is det
+%! time(+Instant:, +Time_Scale) is det
 
-% 3.1.1.3 instant
-% ------------
-% instant(+Point, +Time_Axis)
-instant(Point, Time_Axis) :- true. % member(Axis)?
+time(Instant_or_Time_Interval, Time_Scale) :- 
+% TODO: Check if the instant or time_interval is on the time_scale.
+    true. % Instant must be on a time scale
+
+% ===========
+% 3.1.1.3 *instant*
 % Note 1: An instantaneous event occurs at a specific instant
 
-% 3.1.1.4 time axis
-% ------------
-time_axis :- assert(time_axis('0000/P9999')). % successors(Instantaneous_Events), member(Axis)?
+%! instant(+Point, +Time_Axis:time_axis) is det
+instant(Point, Time_Axis) :- 
+% TODO: Check if point is a member of time_axis.        
+    true. % member(Axis)?
 
+% ===========
+% 3.1.1.4 *time axis*
+%! time(+Name:string, +Start, +End) is det
+
+time_axis(Name, Start, End).
 % Note 1: According to the theory of special relativity: _time axis_ depends on the choice of a _spatial reference frame_.
 % Note 2: In IEC 60050-113:2011, 113-01-03, time according to the space-time model is defined to be: 
 %           "one-dimensional subspace of space-time, locally orthogonal to space."
 
-% ...
+% UTC, TAI, etc.
+assert(time_axis('default',-inf, inf)). % successors(Instantaneous_Events), member(Axis)?
+
+
+% ===========
+% 3.1.1.5 *time scale*
+% system of ordered marks which can be attributed to _instants_ on the _time axis_, one instant chosen as _origin_.
+% time_scale_types "may amongst others be chosen as" _TAI_, _UTC_, _calendar_, _discrete_, etc.
+%! time_scale(+Scale_Type:string, ?Origin:Instant, ?Instants:List, ?Time_Axis:time_axis, ) is det
+
+time_scale(Scale_Type, Origin, Instants, Time_Axis) :- true.
+
+% ===========
+% 3.1.1.5 *time interval*
+% "part of the _time_axis_ limited by two _instants_ and, unless otherwise stated, the limiting instants themselves."
+%! time_interval(+Instant1:instant, +Instant2:instant, +Time_Axis:time_axis, -Time_Interval:time_interval) is det
+
+time_interval(Instant1, Instant2, Time_Axis) :- 
+%   TODO: Check that Instant1 and Instant2 are part of the Time_Axis   
+    true.
+
+% ===========
+% 3.1.1.7 *time scale unit*
+% "unit of measurement of a _duration_
+%! time_scale_unit(+Duration, +Time_Scale, -Unit_of_Measurement) is det
+
+time_scale_unit(Duration, Time_Scale, Unit_of_Measurement) :- 
+    Time_Scale = time_scale(Scale_Type, _, _, _),
+%   TODO: Use the Scale_Type to determine the Unit of Measurement
+    true.
+
+% ===========
+% 3.1.1.8 *duration*
+% "non-negative time quantity" = difference between final and initial _instants_ of a _time interval_
+% ... Note 3: exact duration of a _time_scale_unit_ depends on the _time_scale_
+
+%! duration(+Time_Interval:time_interval, +Time_Scale:time_scale, -Duration) is det
+
+duration(Time_Interval, Time_Scale, Duration) :- 
+    Time_Interval = time_interval(Instant1, Instant2, Time_Axis),
+%   TODO: Convert Instant1 + Instant2 to Time Scale, Return Duration
+
+    Duration > 0,
+    true.
+
+% ===========
+% 3.1.1.9 clock
+% "_time scale_ suited for intra-day time measurements"
+
+/*
+clock(Clock) :- 
+    time_scale(Scale_Type, Origin, Instants, Time_Axis),
+    time_scale(Scale_Type, Origin, Instants, Time_Axis),
+    time_scale(Scale_Type, Origin, Instants, Time_Axis),
+*/
+
+
+
+
 
 % ----- Part 2: Extensions -----
