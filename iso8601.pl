@@ -92,7 +92,10 @@ instant(Point, Time_Axis) :-
 % 3.1.1.4 *time axis*
 %! time(+Name:string, +Start, +End) is det
 
-time_axis(Name, Start, End).
+time_axis(Name, Start, End) :- 
+    string(Name),
+    Start \== End.
+
 % Note 1: According to the theory of special relativity: _time axis_ depends on the choice of a _spatial reference frame_.
 % Note 2: In IEC 60050-113:2011, 113-01-03, time according to the space-time model is defined to be: 
 %           "one-dimensional subspace of space-time, locally orthogonal to space."
@@ -105,9 +108,12 @@ assert(time_axis('default',-inf, inf)). % successors(Instantaneous_Events), memb
 % 3.1.1.5 *time scale*
 % system of ordered marks which can be attributed to _instants_ on the _time axis_, one instant chosen as _origin_.
 % time_scale_types "may amongst others be chosen as" _TAI_, _UTC_, _calendar_, _discrete_, etc.
-%! time_scale(+Scale_Type:string, ?Origin:Instant, ?Instants:List, ?Time_Axis:time_axis, ) is det
+%! time_scale(+Scale_Type:string, ?Origin:instant, ?Instants:list, ?Time_Axis:time_axis, ) is det
 
-time_scale(Scale_Type, Origin, Instants, Time_Axis) :- true.
+% Discrete Time Scale
+/*time_scale(Scale_Type, Origin, Instants, Time_Axis) :- 
+    
+    .*/
 
 % ===========
 % 3.1.1.5 *time interval*
@@ -146,12 +152,17 @@ duration(Time_Interval, Time_Scale, Duration) :-
 % 3.1.1.9 clock
 % "_time scale_ suited for intra-day time measurements"
 
+% Let's build a clock!
+/*
+time_scale('clock', Origin, Instants, Time_Axis) :- true. 
+*/
 /*
 clock(Clock) :- 
     time_scale(Scale_Type, Origin, Instants, Time_Axis),
     time_scale(Scale_Type, Origin, Instants, Time_Axis),
     time_scale(Scale_Type, Origin, Instants, Time_Axis),
 */
+
 
 
 
