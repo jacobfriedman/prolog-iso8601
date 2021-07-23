@@ -84,9 +84,9 @@ time(Instant_or_Time_Interval, Time_Scale) :-
 % Note 1: An instantaneous event occurs at a specific instant
 
 %! instant(+Point, +Time_Axis:time_axis) is det
-instant(Point, Time_Axis) :- 
-% TODO: Check if point is a member of time_axis.        
-    true. % member(Axis)?
+instant(Point, Time_Axis) :-
+    time_axis(_, Start, End) = Time_Axis,      
+    between(Start, End, Point). 
 
 % ===========
 % 3.1.1.4 *time axis*
@@ -103,7 +103,6 @@ time_axis(Name, Start, End) :-
 % UTC, TAI, etc.
 assert(time_axis('default',-inf, inf)). % successors(Instantaneous_Events), member(Axis)?
 
-
 % ===========
 % 3.1.1.5 *time scale*
 % system of ordered marks which can be attributed to _instants_ on the _time axis_, one instant chosen as _origin_.
@@ -111,9 +110,10 @@ assert(time_axis('default',-inf, inf)). % successors(Instantaneous_Events), memb
 %! time_scale(+Scale_Type:string, ?Origin:instant, ?Instants:list, ?Time_Axis:time_axis, ) is det
 
 % Discrete Time Scale
-/*time_scale(Scale_Type, Origin, Instants, Time_Axis) :- 
-    
-    .*/
+% time_scale(Scale_Type, Origin, Instants, Time_Axis) :- 
+
+
+
 
 % ===========
 % 3.1.1.5 *time interval*
@@ -144,24 +144,45 @@ time_scale_unit(Duration, Time_Scale, Unit_of_Measurement) :-
 duration(Time_Interval, Time_Scale, Duration) :- 
     Time_Interval = time_interval(Instant1, Instant2, Time_Axis),
 %   TODO: Convert Instant1 + Instant2 to Time Scale, Return Duration
-
     Duration > 0,
     true.
 
 % ===========
-% 3.1.1.9 clock
+% 3.1.1.9 *clock*
 % "_time scale_ suited for intra-day time measurements"
+% see time_scale.pl.
 
-% Let's build a clock!
+% ===========
+% 3.1.1.10 *24-hour clock*
+% see time_scale.pl.
+
+% ===========
+% 3.1.1.11 *recurring time interval*
+% "series of consecutive _time intervals_ of identical _duration"
+%! recurring_time_interval(+Consecutive_Time_Intervals:list) is det
+
+
 /*
-time_scale('clock', Origin, Instants, Time_Axis) :- true. 
+recurring_time_interval(Consecutive_Time_Intervals) :-
+    [Head_Interval | Tail_Intervals] = Consecutive_Time_Intervals,
+    Tail_Intervals \= [],
+    duration(Head_Interval, Time_Scale, Duration),
+    Time_Scale, Duration
+    duration(Time_Interval, _Time_Scale, Duration),
+    recurring_time_interval([Time_Interval|Consecutive_Time_Intervals], Duration) :-
+
 */
-/*
-clock(Clock) :- 
-    time_scale(Scale_Type, Origin, Instants, Time_Axis),
-    time_scale(Scale_Type, Origin, Instants, Time_Axis),
-    time_scale(Scale_Type, Origin, Instants, Time_Axis),
-*/
+
+
+
+%   note 1: "if duration(time intervals) measured in calendar entities, 
+%   duration of each time interval depends on the calendar dates of start & end"
+
+
+
+
+
+
 
 
 
