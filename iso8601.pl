@@ -31,7 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 %   INCOMPLETE.
 :-  module(iso8601, [date/3, time/2, instant/2]).
-:-  dynamic time_axis/3.
+:-  dynamic(time_axis/3).
+
+:-  initialization(setup).
 %                       ...
 
 /* <module> ISO8601-1:2019 date library
@@ -44,6 +46,7 @@ based on composite character strings + time shifts, with UTC default.
 @license GPL
 */
 
+setup :- assertz(time_axis('default',-inf, inf)).
 
 % ------- ISO8601-1:2019 Part 1: Basic Rules -------
 % 3.1 Terms and Definitions --> 3.1.1 Basic Concepts
@@ -56,6 +59,7 @@ based on composite character strings + time shifts, with UTC default.
 
 date(Time, Format, time_scale('calendar', _Origin, Instants, _Time_Axis)) :- 
 %   TODO: denominate _Time_ and _Instants_ to a single format. 
+    atom(Format),
     member(Time, Instants).
 
 
@@ -76,8 +80,9 @@ date(Time, Format, time_scale('calendar', _Origin, Instants, _Time_Axis)) :-
 %! time(+Instant:, +Time_Scale) is det
 
 time(Instant_or_Time_Interval, Time_Scale) :- 
-% TODO: Check if the instant or time_interval is on the time_scale.
-    true. % Instant must be on a time scale
+    Time_Scale = time_scale(_,_,_,_),
+    (Instant_or_Time_Interval = instant(_,_); Instant_or_Time_Interval = time_interval(_,_,_)).
+
 
 % ===========
 % 3.1.1.3 *instant*
@@ -87,6 +92,8 @@ time(Instant_or_Time_Interval, Time_Scale) :-
 instant(Point, Time_Axis) :-
     time_axis(_, Start, End) = Time_Axis,      
     between(Start, End, Point). 
+
+% TODO: Check if the instant or time_interval is on the time_scale.
 
 % ===========
 % 3.1.1.4 *time axis*
@@ -101,19 +108,25 @@ time_axis(Name, Start, End) :-
 %           "one-dimensional subspace of space-time, locally orthogonal to space."
 
 % UTC, TAI, etc.
-assert(time_axis('default',-inf, inf)). % successors(Instantaneous_Events), member(Axis)?
+ % successors(Instantaneous_Events), member(Axis)?
 
 % ===========
 % 3.1.1.5 *time scale*
 % system of ordered marks which can be attributed to _instants_ on the _time axis_, one instant chosen as _origin_.
 % time_scale_types "may amongst others be chosen as" _TAI_, _UTC_, _calendar_, _discrete_, etc.
-%! time_scale(+Scale_Type:string, ?Origin:instant, ?Instants:list, ?Time_Axis:time_axis, ) is det
+%! time_scale(+Scale_Type:string, ?Origin:instant, ?Instants:list, ?Time_Axis:time_axis) is det
+
+% Default Time Scale
+time_scale(Scale_Type, Origin, Instants, Time_Axis) :- 
+    atom(Scale_Type),
+    Origin = instant(_, _),
+    % TODO: Ensure that these are all instants...
+    is_list(Instants),
+    Time_Axis = time_axis(_,_,_).
+
 
 % Discrete Time Scale
 % time_scale(Scale_Type, Origin, Instants, Time_Axis) :- 
-
-
-
 
 % ===========
 % 3.1.1.5 *time interval*
@@ -122,7 +135,9 @@ assert(time_axis('default',-inf, inf)). % successors(Instantaneous_Events), memb
 
 time_interval(Instant1, Instant2, Time_Axis) :- 
 %   TODO: Check that Instant1 and Instant2 are part of the Time_Axis   
-    true.
+    Time_Axis = time_axis(_Name, _Start, _End),
+    Instant1  = instant(_Point, Time_Axis),
+    Instant2  = instant(_Point2, Time_Axis).
 
 % ===========
 % 3.1.1.7 *time scale unit*
@@ -130,9 +145,10 @@ time_interval(Instant1, Instant2, Time_Axis) :-
 %! time_scale_unit(+Duration, +Time_Scale, -Unit_of_Measurement) is det
 
 time_scale_unit(Duration, Time_Scale, Unit_of_Measurement) :- 
-    Time_Scale = time_scale(Scale_Type, _, _, _),
+    Duration    =   duration(_,_,_),
+    Time_Scale  =   time_scale(_Scale_Type, _, _, _),
 %   TODO: Use the Scale_Type to determine the Unit of Measurement
-    true.
+    atom(Unit_of_Measurement).
 
 % ===========
 % 3.1.1.8 *duration*
@@ -141,11 +157,12 @@ time_scale_unit(Duration, Time_Scale, Unit_of_Measurement) :-
 
 %! duration(+Time_Interval:time_interval, +Time_Scale:time_scale, -Duration) is det
 
-duration(Time_Interval, Time_Scale, Duration) :- 
-    Time_Interval = time_interval(Instant1, Instant2, Time_Axis),
+duration(Time_Interval, _Time_Scale, Duration) :- 
+    Time_Interval = time_interval(_Instant1, _Instant2, _Time_Axis),
 %   TODO: Convert Instant1 + Instant2 to Time Scale, Return Duration
-    Duration > 0,
-    true.
+    Duration > 0.
+
+
 
 % ===========
 % 3.1.1.9 *clock*
@@ -161,31 +178,17 @@ duration(Time_Interval, Time_Scale, Duration) :-
 % "series of consecutive _time intervals_ of identical _duration"
 %! recurring_time_interval(+Consecutive_Time_Intervals:list) is det
 
+recurring_time_interval --> 
+    % minimum of 2 intervals
+    [time_interval(_,_,_), time_interval(_,_,_)].
+    % TODO: Include duration rule (below)
 
-/*
-recurring_time_interval(Consecutive_Time_Intervals) :-
-    [Head_Interval | Tail_Intervals] = Consecutive_Time_Intervals,
-    Tail_Intervals \= [],
-    duration(Head_Interval, Time_Scale, Duration),
-    Time_Scale, Duration
-    duration(Time_Interval, _Time_Scale, Duration),
-    recurring_time_interval([Time_Interval|Consecutive_Time_Intervals], Duration) :-
-
-*/
-
-
+recurring_time_interval --> [time_interval(_,_,_)], recurring_time_interval.
+% duration(Head_Interval, Time_Scale, Duration),
+% Time_Scale, Duration...
 
 %   note 1: "if duration(time intervals) measured in calendar entities, 
 %   duration of each time interval depends on the calendar dates of start & end"
-
-
-
-
-
-
-
-
-
 
 
 
