@@ -184,8 +184,12 @@ recurring_time_interval -->
     % TODO: Include duration rule (below)
 
 recurring_time_interval --> [time_interval(_,_,_)], recurring_time_interval.
-% duration(Head_Interval, Time_Scale, Duration),
-% Time_Scale, Duration...
+/*  {
+        % duration(Head_Interval, Time_Scale, Duration),
+        % Time_Scale, Duration...
+       }
+*/
+
 
 %   note 1: "if duration(time intervals) measured in calendar entities, 
 %   duration of each time interval depends on the calendar dates of start & end"
