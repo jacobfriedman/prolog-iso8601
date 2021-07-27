@@ -81,8 +81,11 @@ date(Time, Format, time_scale('calendar', _Origin, Instants, _Time_Axis)) :-
 
 time(Instant_or_Time_Interval, Time_Scale) :- 
     Time_Scale = time_scale(_,_,_,_),
-    (Instant_or_Time_Interval = instant(_,_); Instant_or_Time_Interval = time_interval(_,_,_)).
-
+    member(Instant_or_Time_Interval, 
+    [
+            instant(_,_), 
+            time_scale(_,_,_,_)
+    ]).
 
 % ===========
 % 3.1.1.3 *instant*
@@ -162,8 +165,6 @@ duration(Time_Interval, _Time_Scale, Duration) :-
 %   TODO: Convert Instant1 + Instant2 to Time Scale, Return Duration
     Duration > 0.
 
-
-
 % ===========
 % 3.1.1.9 *clock*
 % "_time scale_ suited for intra-day time measurements"
@@ -179,16 +180,13 @@ duration(Time_Interval, _Time_Scale, Duration) :-
 %! recurring_time_interval(+Consecutive_Time_Intervals:list) is det
 
 recurring_time_interval --> 
-    % minimum of 2 intervals
-    [time_interval(_,_,_), time_interval(_,_,_)].
-    % TODO: Include duration rule (below)
-
-recurring_time_interval --> [time_interval(_,_,_)], recurring_time_interval.
-/*  {
-        % duration(Head_Interval, Time_Scale, Duration),
-        % Time_Scale, Duration...
-       }
-*/
+    [Time_Interval, Time_Interval];
+    [Time_Interval], recurring_time_interval, 
+    { 
+        % TODO: Check for Time Scale
+        % duration(Time_Interval, _Time_Scale, Duration)
+        Time_Interval = time_interval(_,_,_)
+    }.
 
 
 %   note 1: "if duration(time intervals) measured in calendar entities, 
