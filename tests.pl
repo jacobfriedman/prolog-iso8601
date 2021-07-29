@@ -36,7 +36,7 @@ test(recurring_time_interval) :-
     */
 
     phrase(
-        iso8601:recurring_time_interval(), 
+        iso8601:recurring_time_interval, 
             [   
                 time_interval(1,2,3),
                 time_interval(1,2,3),

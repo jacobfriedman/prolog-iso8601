@@ -32,7 +32,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 %   INCOMPLETE.
 :-  module(iso8601, [date/3, time/3, instant/2]).
 :-  dynamic(time_axis/3).
-
 :-  initialization(setup).
 %                       ...
 
@@ -46,7 +45,12 @@ based on composite character strings + time shifts, with UTC default.
 @license GPL
 */
 
-setup :- assertz(time_axis('default',-inf, inf)).
+setup :- 
+    consult('clpz.pl'),
+    current_prolog_flag(max_integer,Maximum_Integer),
+    current_prolog_flag(min_integer,Minimum_Integer),
+    assertz(time_axis(finite, Minimum_Integer, Maximum_Integer)),
+    assertz(time_axis(infinite,-inf,inf)).
 
 % ------- ISO8601-1:2019 Part 1: Basic Rules -------
 %
@@ -58,7 +62,7 @@ setup :- assertz(time_axis('default',-inf, inf)).
 % !date(+Time:time, -Format:string, Time_Scale:time_scale) is det
 % !date(-Time:time, +Format:string, Time_Scale:time_scale) is det
 
-date(Time, Format, time_scale('calendar', _Origin, Instants, _Time_Axis)) :- 
+date(Time, Format, time_scale(calendar, _Origin, Instants, _Time_Axis)) :- 
 %   TODO: denominate _Time_ and _Instants_ to a single format. 
     atom(Format),
     member(Time, Instants).
@@ -100,10 +104,10 @@ instant(Point, Time_Axis) :-
 
 % ===========
 % 3.1.1.4 *time axis*
-%! time(+Name:string, +Start, +End) is semidet
+%! time(+Name:atom, +Start, +End) is semidet
 
 time_axis(Name, Start, End) :- 
-    string(Name),
+    atom(Name),
     Start \== End.
 
 % Note 1: According to the theory of special relativity: _time axis_ depends on the choice of a _spatial reference frame_.
@@ -117,17 +121,17 @@ time_axis(Name, Start, End) :-
 % 3.1.1.5 *time scale*
 % system of ordered marks which can be attributed to _instants_ on the _time axis_, one instant chosen as _origin_.
 % time_scale_types "may amongst others be chosen as" _TAI_, _UTC_, _calendar_, _discrete_, etc.
-%! time_scale(+Scale_Type:string, ?Origin:instant, ?Instants:list, ?Time_Axis:time_axis) is nondet
+%! time_scale(+Scale_Type:atom, ?Origin:instant, ?Instants:list, ?Time_Axis:time_axis, ?Base_Unit) is nondet
 
 % Default Time Scale
-time_scale(Scale_Type, Origin, Instants, Time_Axis) :- 
-    % TODO: Include Basic_Unit as a 
-    atom(Scale_Type),
+time_scale(Time_Scale_Type, Origin, Instants, Time_Axis, Base_Unit) :-
+    atom(Time_Scale_Type),
     Origin = instant(_, _),
     % TODO: Ensure that these are all instants...
-    is_list(Instants),
+    % maplist(instant(Point,Time_Axis)),
     Time_Axis = time_axis(_,_,_).
 
+time_scale(secondly, _, _, _, second) :- true.
 
 % Discrete Time Scale
 % time_scale(Scale_Type, Origin, Instants, Time_Axis) :- 
@@ -145,14 +149,15 @@ time_interval(Instant1, Instant2) :-
 % ===========
 % 3.1.1.7 *time scale unit*
 % "unit of measurement of a _duration_
-%! time_scale_unit(+Duration, +Time_Scale, -Unit_of_Measurement) is semidet
+%! time_scale_unit(?Unit_of_Measurement, +Duration, +Time_Scale ) is semidet
 
-time_scale_unit(Duration, Time_Scale, Unit_Of_Measurement) :- 
+time_scale_unit(Unit_Of_Measurement, Time_Scale, Duration) :- 
     Duration    =   duration(_,_,_),
-    Time_Scale  =   time_scale(_Scale_Type, _, _, _),
+    Time_Scale  =   time_scale(_, _, _, _),
 %   TODO: Use the Scale_Type to determine the Unit of Measurement
 %           i.e conversion
     atom(Unit_Of_Measurement).
+
 
 % ===========
 % 3.1.1.8 *duration*
@@ -161,13 +166,19 @@ time_scale_unit(Duration, Time_Scale, Unit_Of_Measurement) :-
 
 %! duration(+Time_Interval:time_interval, +Time_Scale:time_scale, -Time) is semidet
 
-duration(Time_Interval, Time_Scale, Time) :-
-    Time_Interval = time_interval(
-                        instant(Point_1, Time_Axis), 
-                        instant(Point_2, Time_Axis)
-                    ),
+duration(   
+        time_interval( 
+            instant(Point_1, Time_Axis), 
+            instant(Point_2, Time_Axis) 
+        ),
+        time_scale( Time_Scale_Type, _, _, Time_Axis), 
+        Time 
+    ) :-
+    % 3.1.2.1_second_ is the base unit of _duration_     
+    ground(Time_Scale_Type); Time_Scale_Type = secondly,
     Quantity is (Point_2 - Point_1), Quantity > 0,
     Time = time(instant(Quantity, Time_Axis), Time_Scale).
+
     
 % ===========
 % 3.1.1.9 *clock*
@@ -223,7 +234,7 @@ tai(Time_Scale) :-
 utc_of_day(Time_Of_Day) :-
     time(
         Instant, % Instant along axis
-        time_scale('UTC', instant(-inf, Time_Axis), [], Time_Axis)
+        time_scale('UTC', instant(-inf, Time_Axis), [], Time_Axis),
         Time_Of_Day % Mark
     ).
 
@@ -295,7 +306,7 @@ leap_year(Calendar_Year_Time_Scale_Unit, Gregorian_Calendar) :-
 % "_calendar_year_ in _gregorian_calendar_ whose year # is divisible without remainder by 100"
 centennial_year(Calendar_Year_Time_Scale_Unit, Gregorian_Calendar) :-
     % Calendar
-    Gregorian_Calendar = gregorian_calendar(Gregorian_Time_Scale),
+    Gregorian_Calendar = gregorian_calendar(Gregorian_Time_Scale).
     % TODO: Pull the _Calendar_Year_ scale from the Gregorian Time Scale
     % Assert mod 100
 
@@ -331,3 +342,29 @@ time_shift(Time_1, Time_2, Time_Scale_1, Time_Scale_2) :- true.
 
 % 3.1 Terms and Definitions --> 3.1.2 Time and date units
 % --------------------------------------------------
+
+% ===========
+% 3.1.2.1 *Second*
+% "base unit of _duration_ measurement in the International System of Units (SI)"
+% See line 167
+% TODO: Do we have a huge integer? Everything can be measured in seconds...
+time_scale_unit(second, Time_Scale, Duration) :- true.
+
+% ===========
+% 3.1.2.2 *Clock Second*
+% "base unit of _duration_ measurement in the International System of Units (SI)"
+% See line 167
+% TODO: Do we have a huge integer? Because everything can be measured in seconds...
+
+time_scale_unit(clock_second, Time_Scale, Duration) :- 
+    %
+    Time_Axis   = time_axis(finite, _, _),
+    Time_Scale  = time_scale(secondly, _, _, Time_Axis, second), 
+    Duration    = duration(
+                    _,
+                    _, 
+                    time(
+                        instant(1, Time_Axis),
+                        Time_Scale,
+                        '1'
+                    )
