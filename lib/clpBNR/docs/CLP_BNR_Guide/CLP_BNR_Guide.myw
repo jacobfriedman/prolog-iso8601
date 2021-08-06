@@ -1,0 +1,83 @@
+[MyWordDocStyle]
+title>	A Guide to CLP(BNR)
+centreblock>
+	**Constraint Logic Programming over Booleans, Integers and Reals**
+	**Version 0.9.7, June 2021**
+
+The word "constraint" is used in a variety of contexts from everyday life to physics, mathematics, and other sciences with much the same intuitive meaning, even when the formalization is different. A bead on a wire, a weight on a string, a beaker open to the atmosphere, a space mission limited by onboard fuel, a desert ecology limited by the lack of water are all examples of constrained systems.
+
+[Constraint logic programming] (CLP) refers to the combination of constraints and logic programming. A constraint is declaratively just a relation, usually a mathematical relation, but it differs operationally from other ways of treating relations. As relations, constraints fit very well into logic programming framework which is also based on relations. CLP(X) is a CLP language over a domain of discourse "X". Prolog itself is an instance of CLP over the domain of Herbrand terms with unification as a special case of constraint solving.
+
+CLP(BNR) is an instance of CLP({`RR`}), i.e., CLP over the domain of real numbers. It differs from some other CLP({`RR`})'s in that:
+* CLP(BNR) is complete in that any real number can be finitely represented even though the set of reals is infinite. It does this by sacrificing precision: a real number {`R`} is represented by an interval ({`L,U`} where {`L=<R=<U`} and {`L`} and {`U`} are numbers as defined by SWI-Prolog (integers, rationals or floats, including the IEEE infinity values). A precise value ({`L=U`}) is represented directly by the number.
+* CLP(BNR) arithmetic is mathematically sound. Any computed interval will contain the precise value. Mathematically:
+	math>	AA x_j in X_j, 1=<j=<N , f(x_1,...,x_N) in F=f(X_1,...,X_N)
+	Where {`f`} is an arbitrary function, {`x_j`} are reals and {`F,X_j`} are intervals. Due to the well-known pitfalls of IEEE floating point arithmetic, any CLP({`RR`}) based on conventional IEEE floating point arithmetic is unsound. (Try: `?- 1.21 =:= 1.1*1.1.`) In particular the add and multiply operations are non-associative and non-distributive. Relational interval arithmetic in CLP(BNR) (and some others) ensures that computed intervals contain the mathematically correct real value.
+* All constraints, including non-linear constraints are active. In some CLP({`RR`}) implementations only linear constraints are active; non-linear constraints are deferred until their set of variables is sufficiently resolved that the constraint becomes linear.
+* CLP(BNR) supports an "integral" constraint which forces interval bounds to be integers, enabling constraints over finite domain problems within the relational interval arithmetic framework; booleans can be represented as integer intervals with bounds `((0,1))`, and  boolean logic operations are included. Because of the uniformity of the approach, problems which involve closely interacting mixtures of discrete and continuous domains can be addressed.
+* Implementation: For simplicity and portability reasons, this version of CLP(BNR) is entirely implemented in SWI-Prolog (V8.2 or later) and configured as an "Add-on" package as module `clpBNR`. The main dependencies include attributed variables, support for rationals and IEEE floating point numbers (including rounding modes), and global variables for operational measurements.
+
+CLP systems began appearing an the 1980's and span a considerable variety in system and underlying technology as well as a variety of applications. The first interval based CLP system was incorporated in BNR Prolog (1988) based on the ideas of [Cleary (1986)]. The original version was based on intervals over the reals only, but could handle simple nonlinear constraints. In 1992 BNR Prolog's CLP system was extended to CLP(BNR) which provides a uniform treatment of boolean, integer, and real valued variables using interval propagation. Although source of the last known Unix based application has been archived (see [BNR Prolog source]) it is no longer actively supported. However, much of the original literature still is available (see [BNR Prolog Papers]).
+
+This version of CLP(BNR) was largely based on the original, but has also incorporated ideas from more recent CLP interval systems. In particular, ideas in [CLIP] developed by Tim Hickey and his team at Brandeis University in the late 1990's and [Interval Arithmetic: from Principles to Implementation] on the primitive interval relations, have been used. Other notable systems based on constraints over intervals include [Newton] and [Numerica]. 
+
+This document is not focused on either the theoretical underpinnings of CLP(BNR) or on other CLP systems over other domains; these are adequately covered by the existing academic literature and relevant Web sites. Rather the focus is on the practical details of how Prolog programmers can use this version of CLP(BNR) through numerous, hopefully useful, examples. For any particular problem, CLP(BNR) may not be the optimal approach (depending on the definition of "optimal") but the example should provide insight on how to use mathematical constraints that can be applied to other problem domains.
+
+aside>	Aside: This document was authored using "MyWord", a web publishing application loosely described as a user extensible light weight markup langauge (think MarkDown). See [MyWord] for more information. 
+
+##### Acknowledgements
+The original CLP(BNR) on BNR Prolog using interval arithmetic was developed by Bill Older, John Rummell, and Andre Vellino. Fredéric Benhamou extended it to finite domains during a sabbatical in to BNR's Computing Research Lab in 1993. Many of the example applications in this guide were taken from a Carleton University graduate level course given by Bill Older in 1995. Additional capabilities from the larger CLP community have been incorporated and are referenced in the relevant sections of this User Guide.
+
+This version of CLP(BNR) would not have been possible without an active SWI-Prolog development community led by Jan Wielemaker.  In particular, the addition of IEEE compatible floating point arithmetic (non-numbers, rounding modes) and native support for rational numbers resulted in a greatly simplified and more efficient implementation.
+
+TOC>	{#id TableOfContents}`        `**Contents**
+
+@include
+	CLPBNR_Module.myw
+	CLPBNR_SynSem.myw
+	CLPBNR_PrgCons.myw
+	CLPBNR_UsingConstraints.myw
+	CLPBNR_Reference.myw
+	CLPBNR_DevTools.myw
+	CLPBNR_Appendices.myw
+&
+	[Constraint logic programming] <- link https://dl.acm.org/doi/abs/10.1145/41625.41635
+	[Cleary (1986)]     <- link https://prism.ucalgary.ca/handle/1880/45818
+	[BNR Prolog Papers] <- link https://ridgeworks.github.io/BNRProlog-Papers
+	[BNR Prolog source] <- link https://github.com/ridgeworks/BNRProlog-Source-Archive
+	[CLP(FD)]           <- link https://www.metalevel.at/prolog/clpz
+	[CLIP]              <- link https://scholar.lib.vt.edu/ejournals/JFLP/jflp-mirror/articles/2001/S01-02/JFLP-A01-07.pdf
+	[Newton]            <- link https://www.sciencedirect.com/science/article/pii/S0167642397000087
+	[Numerica]          <- link https://www.sciencedirect.com/science/article/pii/S0004370298000538
+	[Interval Arithmetic: from Principles to Implementation] <- link http://fab.cba.mit.edu/classes/S62.12/docs/Hickey_interval.pdf
+	[SWI-Prolog]        <- link https://www.swi-prolog.org/
+	[MyWord]            <- link https://github.com/ridgeworks/MyWord
+
+	@import MyWordDocStyle.mmk pkgs/demo.mmk pkgs/toc.mmk pkgs/asciimath.mmk pkgs/tsv.mmk
+	{` .. `}      <- <math class = my_math display=inline> asciimath
+	.myw ..     <- myword
+	// Turn off fancy apostrophe so it can be used as single quote
+	// ..         <- <div hidden>
+	' <-
+	TOC> .. <- toc 3 4
+	title> ..       <- <h1 class=_centre>
+	centreblock> .. <- <div class=_centre>
+	aside> ..       <- <aside class=my_aside>
+	math> ..        <- <math class=my_math display=block> asciimath
+	
+	/* .. */ <- invisible
+    invisible :: (content) => ''
+	
+	.pl ..          <-  pl
+	@import pkgs/highlight.mmk
+	pl :: (content) => `<pre class=pl>${hljs.highlight("prolog",content).value}</pre>`
+
+	@css
+		._centre {text-align: center;}
+		div.eg, div.demo {margin: 4pt 0;}
+		aside.my_aside {font-size:smaller; position:relative; margin-left:30px; margin-right:50px}
+		pre.pl {padding-left:10pt}
+		
+		table.my_array { border-collapse:collapse; }
+		table.my_array tr td { background:whitesmoke; padding: 4px 16px; font-size:smaller }
+		table.my_array tr:nth-child(1) td { background:lightgray; font-weight: bold }

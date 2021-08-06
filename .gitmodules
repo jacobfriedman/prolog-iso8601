@@ -1,0 +1,3 @@
+[submodule "clpBNR"]
+	path = clpBNR
+	url = https://github.com/ridgeworks/clpBNR

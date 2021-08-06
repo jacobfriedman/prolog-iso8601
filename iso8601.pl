@@ -29,7 +29,11 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+% Dependencies: [clp(BNR)]
+:-  ['lib/clpBNR/prolog/clpBNR'].
+
 %   INCOMPLETE.
+
 :-  module(iso8601, [date/3, time/3, instant/2]).
 :-  dynamic(time_axis/3).
 :-  initialization(setup).
@@ -46,11 +50,13 @@ based on composite character strings + time shifts, with UTC default.
 */
 
 setup :- 
-    consult('clpz.pl'),
-    current_prolog_flag(max_integer,Maximum_Integer),
-    current_prolog_flag(min_integer,Minimum_Integer),
-    assertz(time_axis(finite, Minimum_Integer, Maximum_Integer)),
-    assertz(time_axis(infinite,-inf,inf)).
+% consult('units.pl'),
+
+% Which is urn("urn:ogc:def:crs:EPSG::4326")... -> WGS84(G1762)
+% ! Caution !  "[time] cannot be fixed due to plate tectonic motion and polar motion"-  <nap.edu>
+% ! Caution ! Watch for gravitational shifts and try to respect ITRF/TAI.
+    assertz(time_axis('ℝ', 'wgs84'('G1762'))).
+    % ITRF Should have a good 2021 solution we can use as an ongoing reference ....
 
 % ------- ISO8601-1:2019 Part 1: Basic Rules -------
 %
@@ -61,7 +67,6 @@ setup :-
 % Format can be one of 'calendar', 'ordinal', or 'week'.
 % !date(+Time:time, -Format:string, Time_Scale:time_scale) is det
 % !date(-Time:time, +Format:string, Time_Scale:time_scale) is det
-
 date(Time, Format, time_scale(calendar, _Origin, Instants, _Time_Axis)) :- 
 %   TODO: denominate _Time_ and _Instants_ to a single format. 
     atom(Format),
@@ -83,36 +88,47 @@ date(Time, Format, time_scale(calendar, _Origin, Instants, _Time_Axis)) :-
 %! time(+Instant, +Time_Scale, ?Mark) is nondet
 %! time(+Instant, +Time_Scale, ?Mark) is nondet
 
-time(Instant_or_Time_Interval, Time_Scale, Mark) :- 
+time(Instant_or_Time_Interval, Time_Scale) :- 
     Time_Scale = time_scale(_,_,_,_),
     member(Instant_or_Time_Interval, 
     [
             instant(_,_), 
             time_scale(_,_,_,_)
-    ]).
-
+    ])
+    
+    % TODO: If it is a time_interval
+    
+    .
 % ===========
 % 3.1.1.3 *instant*
 % Note 1: An instantaneous event occurs at a specific instant
 
 %! instant(+Point, +Time_Axis:time_axis) is semidet
 instant(Point, Time_Axis) :-
+    ground(Time_Axis) ; time_axis(infinite,-inf,inf),
     time_axis(_, Start, End) = Time_Axis,      
-    between(Start, End, Point). 
+    Start < Point, Point < End.
 
-% TODO: Check if the instant or time_interval is on the time_scale.
+% TODO: If we can't work with infinity as a 'supremum',...
+%       -   solution: bypass -inf,inf and assert truth no matter what, 
+%           given an integer (axis is factored out this way, not good?)
 
 % ===========
 % 3.1.1.4 *time axis*
 %! time(+Name:atom, +Start, +End) is semidet
 
-time_axis(Name, Start, End) :- 
+time_axis(Name, Spatial_Reference_Frame) :- 
     atom(Name),
-    Start \== End.
+
 
 % Note 1: According to the theory of special relativity: _time axis_ depends on the choice of a _spatial reference frame_.
 % Note 2: In IEC 60050-113:2011, 113-01-03, time according to the space-time model is defined to be: 
 %           "one-dimensional subspace of space-time, locally orthogonal to space."
+% 
+
+
+
+
 
 % UTC, TAI, etc.
  % successors(Instantaneous_Events), member(Axis)?
@@ -143,7 +159,14 @@ time_scale(secondly, _, _, _, second) :- true.
 
 time_interval(Instant1, Instant2) :- 
 %   TODO: Check that Instant1 and Instant2 are part of the Time_Axis   
+%   Between or CLP(Z)?  
     Instant1  = instant(_Point_1, Time_Axis),
+    Instant2  = instant(_Point_2, Time_Axis).
+
+time_interval(Instant2) :- 
+    %   TODO: Check that Instant1 and Instant2 are part of the Time_Axis 
+    %   Between or CLP(Z)? Check instant type
+    Instant1  = instant(integer(0), Time_Axis),
     Instant2  = instant(_Point_2, Time_Axis).
 
 % ===========
@@ -166,18 +189,24 @@ time_scale_unit(Unit_Of_Measurement, Time_Scale, Duration) :-
 
 %! duration(+Time_Interval:time_interval, +Time_Scale:time_scale, -Time) is semidet
 
+
 duration(   
         time_interval( 
             instant(Point_1, Time_Axis), 
             instant(Point_2, Time_Axis) 
         ),
         time_scale( Time_Scale_Type, _, _, Time_Axis), 
-        Time 
+        Time_Quantity 
     ) :-
     % 3.1.2.1_second_ is the base unit of _duration_     
     ground(Time_Scale_Type); Time_Scale_Type = secondly,
     Quantity is (Point_2 - Point_1), Quantity > 0,
     Time = time(instant(Quantity, Time_Axis), Time_Scale).
+/*
+duration(Time) :- 
+    Time_Axis = time_axis('finite', _, _),
+    Quantity_Of_Time = time(instant(1), time_scale(secondly, Time_Axis, second)
+*/
 
     
 % ===========
@@ -234,8 +263,7 @@ tai(Time_Scale) :-
 utc_of_day(Time_Of_Day) :-
     time(
         Instant, % Instant along axis
-        time_scale('UTC', instant(-inf, Time_Axis), [], Time_Axis),
-        Time_Of_Day % Mark
+        time_scale('UTC', instant(-inf, Time_Axis), [], Time_Axis, 'day')
     ).
 
 % ===========
@@ -340,31 +368,3 @@ time_shift(Time_1, Time_2, Time_Scale_1, Time_Scale_2) :- true.
 
 
 
-% 3.1 Terms and Definitions --> 3.1.2 Time and date units
-% --------------------------------------------------
-
-% ===========
-% 3.1.2.1 *Second*
-% "base unit of _duration_ measurement in the International System of Units (SI)"
-% See line 167
-% TODO: Do we have a huge integer? Everything can be measured in seconds...
-time_scale_unit(second, Time_Scale, Duration) :- true.
-
-% ===========
-% 3.1.2.2 *Clock Second*
-% "base unit of _duration_ measurement in the International System of Units (SI)"
-% See line 167
-% TODO: Do we have a huge integer? Because everything can be measured in seconds...
-
-time_scale_unit(clock_second, Time_Scale, Duration) :- 
-    %
-    Time_Axis   = time_axis(finite, _, _),
-    Time_Scale  = time_scale(secondly, _, _, Time_Axis, second), 
-    Duration    = duration(
-                    _,
-                    _, 
-                    time(
-                        instant(1, Time_Axis),
-                        Time_Scale,
-                        '1'
-                    )
