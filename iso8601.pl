@@ -29,12 +29,18 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+:- module(iso8601, 
+    [
+        date/3, 
+        time/3, 
+        instant/2
+    ]).
+
 % Dependencies: [clp(BNR)]
 :-  ['lib/clpBNR/prolog/clpBNR'].
 
 %   INCOMPLETE.
 
-:-  module(iso8601, [date/3, time/3, instant/2]).
 :-  dynamic(time_axis/3).
 :-  initialization(setup).
 %                       ...
@@ -51,12 +57,14 @@ based on composite character strings + time shifts, with UTC default.
 
 setup :- 
 % consult('units.pl'),
-
-% Which is urn("urn:ogc:def:crs:EPSG::4326")... -> WGS84(G1762)
+% We use a standard GPS location as a fixture.
+% urn("urn:ogc:def:crs:EPSG::4326")... -> WGS84(G1762)
+%
 % ! Caution !  "[time] cannot be fixed due to plate tectonic motion and polar motion"-  <nap.edu>
 % ! Caution ! Watch for gravitational shifts and try to respect ITRF/TAI.
-    assertz(time_axis('ℝ', 'wgs84'('G1762'))).
-    % ITRF Should have a good 2021 solution we can use as an ongoing reference ....
+%             ITRF Should have an up-and-coming 2021 solution we can use...
+%   time_axis can be 'real', 'integer', or 'boolean' (thus far) - i.e clpBNR types.
+    assertz(time_axis('real', 'wgs84'('G1762'))).
 
 % ------- ISO8601-1:2019 Part 1: Basic Rules -------
 %
@@ -64,13 +72,18 @@ setup :-
 % --------------------------------------------------
 % ===========
 % 3.1.1.1 *date*
+% "_time_ on the _calendar_ _time_scale_"
 % Format can be one of 'calendar', 'ordinal', or 'week'.
 % !date(+Time:time, -Format:string, Time_Scale:time_scale) is det
 % !date(-Time:time, +Format:string, Time_Scale:time_scale) is det
-date(Time, Format, time_scale(calendar, _Origin, Instants, _Time_Axis)) :- 
-%   TODO: denominate _Time_ and _Instants_ to a single format. 
-    atom(Format),
-    member(Time, Instants).
+date(
+        time(Instant_or_Time_Interval, Time_Scale, Mark), 
+        time_scale(calendar, _Origin, Instants), 
+        time_axis('real',_)
+    ) :- 
+    %   TODO: Convert Instant_or_Time_Interval to Mark given Instants.
+    %....? member(Mark, ['calendar_date', 'ordinal_date', 'week_date']).
+    false.
 
 % ===========
 % 3.1.1.2 *time*
@@ -88,50 +101,35 @@ date(Time, Format, time_scale(calendar, _Origin, Instants, _Time_Axis)) :-
 %! time(+Instant, +Time_Scale, ?Mark) is nondet
 %! time(+Instant, +Time_Scale, ?Mark) is nondet
 
-time(Instant_or_Time_Interval, Time_Scale) :- 
+time(Instant_or_Time_Interval, Time_Scale, Mark) :- 
+    % TODO: Include mark as the representative e.g. '1s'?
     Time_Scale = time_scale(_,_,_,_),
     member(Instant_or_Time_Interval, 
     [
             instant(_,_), 
             time_scale(_,_,_,_)
-    ])
-    
+    ]).
+
     % TODO: If it is a time_interval
-    
-    .
+
 % ===========
 % 3.1.1.3 *instant*
 % Note 1: An instantaneous event occurs at a specific instant
-
 %! instant(+Point, +Time_Axis:time_axis) is semidet
-instant(Point, Time_Axis) :-
-    ground(Time_Axis) ; time_axis(infinite,-inf,inf),
-    time_axis(_, Start, End) = Time_Axis,      
-    Start < Point, Point < End.
-
-% TODO: If we can't work with infinity as a 'supremum',...
-%       -   solution: bypass -inf,inf and assert truth no matter what, 
-%           given an integer (axis is factored out this way, not good?)
+instant( Point, time_axis( Number_Type, _ )) :-
+    Point::Number_Type.
 
 % ===========
 % 3.1.1.4 *time axis*
 %! time(+Name:atom, +Start, +End) is semidet
 
-time_axis(Name, Spatial_Reference_Frame) :- 
-    atom(Name),
-
+time_axis(Number_Type, Spatial_Reference_Frame) :-
+    % Leave Spatial_Reference_Frame up to the user for now.
+    member(Number_Type, [real, integer, boolean]).
 
 % Note 1: According to the theory of special relativity: _time axis_ depends on the choice of a _spatial reference frame_.
 % Note 2: In IEC 60050-113:2011, 113-01-03, time according to the space-time model is defined to be: 
 %           "one-dimensional subspace of space-time, locally orthogonal to space."
-% 
-
-
-
-
-
-% UTC, TAI, etc.
- % successors(Instantaneous_Events), member(Axis)?
 
 % ===========
 % 3.1.1.5 *time scale*
