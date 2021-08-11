@@ -37,11 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     ]).
 
 % Dependencies: [clp(BNR)]
-:-  ['lib/clpBNR/prolog/clpBNR'].
+:-  ['lib/clpBNR/prolog/clpBNR'], 
+    [time_scales].
 
 %   INCOMPLETE.
 
-:-  dynamic(time_axis/3).
+:-  dynamic(time_axis/2).
 :-  initialization(setup).
 %                       ...
 
@@ -64,7 +65,7 @@ setup :-
 % ! Caution ! Watch for gravitational shifts and try to respect ITRF/TAI.
 %             ITRF Should have an up-and-coming 2021 solution we can use...
 %   time_axis can be 'real', 'integer', or 'boolean' (thus far) - i.e clpBNR types.
-    assertz(time_axis('real', 'wgs84'('G1762'))).
+    assertz(time_axis(real, 'wgs84'('G1762'))).
 
 % ------- ISO8601-1:2019 Part 1: Basic Rules -------
 %
@@ -133,19 +134,29 @@ time_axis(Number_Type, Spatial_Reference_Frame) :-
 
 % ===========
 % 3.1.1.5 *time scale*
-% system of ordered marks which can be attributed to _instants_ on the _time axis_, one instant chosen as _origin_.
+% "system of ordered marks which can be attributed to _instants_ on the _time axis_, one instant chosen as _origin_".
 % time_scale_types "may amongst others be chosen as" _TAI_, _UTC_, _calendar_, _discrete_, etc.
 %! time_scale(+Scale_Type:atom, ?Origin:instant, ?Instants:list, ?Time_Axis:time_axis, ?Base_Unit) is nondet
 
 % Default Time Scale
 time_scale(Time_Scale_Type, Origin, Instants, Time_Axis, Base_Unit) :-
-    atom(Time_Scale_Type),
-    Origin = instant(_, _),
+
+    Time_Axis = time_axis(Number_Type, _),
+    Origin::Number_Type,
+    Origin = instant(_, _).
     % TODO: Ensure that these are all instants...
     % maplist(instant(Point,Time_Axis)),
-    Time_Axis = time_axis(_,_,_).
 
-time_scale(secondly, _, _, _, second) :- true.
+
+/*
+'real': Continuous e.g. international atomic time (TAI) - 
+'real': Continuous with discontinuities e.g. - UTC due to _leap_seconds_
+                                        - _standard_time_ due to summer/winter time
+'integer': Successive steps e.g. _calendars_ where the _time_axis_ is split up into successive _time_intervals_
+                        and the same mark is attributed to all isntants of each time interval         
+'integer'/'boolean' Discrete e.g. in digital techniques                                    
+*/
+
 
 % Discrete Time Scale
 % time_scale(Scale_Type, Origin, Instants, Time_Axis) :- 
